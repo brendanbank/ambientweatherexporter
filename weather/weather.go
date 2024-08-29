@@ -64,8 +64,10 @@ func newGauge(factory *promauto.Factory, metric_prefix string, name string, labe
 
 func (p *Parser) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	// parse request url.
+	if p.be_verbose {
+		fmt.Printf("sample submitted %s: %s", req.RemoteAddr, req.URL)
+	}
 	// make url more easilily parseable
-	fmt.Printf("sample submitted %s: %s", req.RemoteAddr, req.URL)
 	queryStr := strings.Replace(req.URL.Path, "/data/report/", "", 1)
 	// respond immediately
 	resp.WriteHeader(http.StatusNoContent)
