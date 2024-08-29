@@ -25,7 +25,7 @@ func main() {
 		"add metrics prefix %s_(metric_name)")
 	be_verbose := flag.Bool("verbose", false,
 		"More verbose logging.")
-	name := flag.Bool("station-name", false,
+	name := flag.String("station-name", false,
 		"Weather station name for the 'name' label on the metrics")
 	versionFlag := flag.Bool("v", false, "Show version and exit")
 	flag.Parse()
