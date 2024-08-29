@@ -15,7 +15,7 @@ import (
 
 type Parser struct {
 	name           string
-	metric_prefix    string
+	metric_prefix  string
 	temperature    *prometheus.GaugeVec
 	battery        *prometheus.GaugeVec // 1 = ok; 0 = low
 	humidity       *prometheus.GaugeVec
@@ -38,23 +38,24 @@ func NewParser(name string, prefix string, factory *promauto.Factory) *Parser {
 	return &Parser{
 		name:           name,
 		metric_prefix:  metric_prefix,
-		temperature:    newGauge(factory, metric_prefix + "temperature", "name", "sensor"),
-		battery:        newGauge(factory, metric_prefix + "battery", "name", "sensor"),
-		humidity:       newGauge(factory, metric_prefix + "humidity", "name", "sensor"),
-		barometer:      newGauge(factory, metric_prefix + "barometer", "name", "type"),
-		windDir:        newGauge(factory, metric_prefix + "wind_dir", "name", "period"),
-		windSpeedMph:   newGauge(factory, metric_prefix + "wind_speed_mph", "name", "type"),
-		solarRadiation: newGauge(factory, metric_prefix + "solar_radiation", "name"),
-		rainIn:         newGauge(factory, metric_prefix + "rain_in", "name", "period"),
-		ultraviolet:    newGauge(factory, metric_prefix + "ultraviolet", "name"),
-		lightning:      newGauge(factory, metric_prefix + "lightning", "name", "period", "type"),
-		stationtype:    newGauge(factory, metric_prefix + "stationtype_info", "name", "type"),
+		temperature:    newGauge(factory, metric_prefix, "temperature", "name", "sensor"),
+		battery:        newGauge(factory, metric_prefix, "battery", "name", "sensor"),
+		humidity:       newGauge(factory, metric_prefix, "humidity", "name", "sensor"),
+		barometer:      newGauge(factory, metric_prefix, "barometer", "name", "type"),
+		windDir:        newGauge(factory, metric_prefix, "wind_dir", "name", "period"),
+		windSpeedMph:   newGauge(factory, metric_prefix, "wind_speed_mph", "name", "type"),
+		solarRadiation: newGauge(factory, metric_prefix, "solar_radiation", "name"),
+		rainIn:         newGauge(factory, metric_prefix, "rain_in", "name", "period"),
+		ultraviolet:    newGauge(factory, metric_prefix, "ultraviolet", "name"),
+		lightning:      newGauge(factory, metric_prefix, "lightning", "name", "period", "type"),
+		stationtype:    newGauge(factory, metric_prefix, "stationtype_info", "name", "type"),
 	}
 }
 
-func newGauge(factory *promauto.Factory, name string, labels ...string) *prometheus.GaugeVec {
+func newGauge(factory *promauto.Factory, metric_prefix string, name string, labels ...string) *prometheus.GaugeVec {
 	opts := prometheus.GaugeOpts{
-		Name: name,
+		Name:      name,
+		Namespace: metric_prefix,
 	}
 	return factory.NewGaugeVec(opts, labels)
 }
@@ -80,10 +81,10 @@ func (p *Parser) Parse(values url.Values) {
 	}()
 
 	parseString := func(name string) (string, error) {
-                array, ok := values[name]
-                if !ok {
-                        return "", fmt.Errorf("no such param: %s", name)
-                }
+		array, ok := values[name]
+		if !ok {
+			return "", fmt.Errorf("no such param: %s", name)
+		}
 		str := strings.ReplaceAll(array[0], "\n", "")
 		str = strings.ReplaceAll(str, "\r", "")
 
