@@ -15,6 +15,7 @@ import (
 
 type Parser struct {
 	name           string
+	be_verbose     bool
 	metric_prefix  string
 	temperature    *prometheus.GaugeVec
 	battery        *prometheus.GaugeVec // 1 = ok; 0 = low
@@ -29,7 +30,7 @@ type Parser struct {
 	stationtype    *prometheus.GaugeVec
 }
 
-func NewParser(name string, prefix string, factory *promauto.Factory) *Parser {
+func NewParser(name string, prefix string, be_verbose bool, factory *promauto.Factory) *Parser {
 	metric_prefix := ""
 	if prefix != "" {
 		metric_prefix = prefix
@@ -37,6 +38,7 @@ func NewParser(name string, prefix string, factory *promauto.Factory) *Parser {
 
 	return &Parser{
 		name:           name,
+		be_verbose:     be_verbose,
 		metric_prefix:  metric_prefix,
 		temperature:    newGauge(factory, metric_prefix, "temperature", "name", "sensor"),
 		battery:        newGauge(factory, metric_prefix, "battery", "name", "sensor"),
@@ -63,6 +65,7 @@ func newGauge(factory *promauto.Factory, metric_prefix string, name string, labe
 func (p *Parser) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	// parse request url.
 	// make url more easilily parseable
+	fmt.Printf("sample submitted %s: %s", req.RemoteAddr, req.URL)
 	queryStr := strings.Replace(req.URL.Path, "/data/report/", "", 1)
 	// respond immediately
 	resp.WriteHeader(http.StatusNoContent)
