@@ -67,8 +67,8 @@ func (p *Parser) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	// parse request url.
 	if p.be_verbose {
 		var re = regexp.MustCompile(`&PASSKEY=[^&]*`)
-		s := re.ReplaceAllString(req.URL.RawQuery, "******")
-		fmt.Printf("sample submitted %s: %s\n", req.RemoteAddr, s)
+		s := re.ReplaceAllString(req.URL.EscapedPath(), "&PASSKEY=******")
+		fmt.Printf("sample submitted from %s: %s\n", req.RemoteAddr, s)
 	}
 	// make url more easilily parseable
 	queryStr := strings.Replace(req.URL.Path, "/data/report/", "", 1)
