@@ -3,7 +3,6 @@ package weather
 import (
 	"fmt"
 	"log"
-	"log/slog"
 	"math"
 	"net/http"
 	"net/url"
@@ -39,19 +38,19 @@ func NewParser(name string, metric_prefix string, be_verbose bool, factory *prom
 		name:                  name,
 		be_verbose:            be_verbose,
 		metric_prefix:         metric_prefix,
-		temperature:           newGauge(factory, metric_prefix, "temperature", "temperature Temperature in fahrenheit", "name", "sensor"),
-		battery:               newGauge(factory, metric_prefix, "battery", "battery", "name", "sensor"),
-		humidity:              newGauge(factory, metric_prefix, "humidity", "humidity", "name", "sensor"),
-		barometer:             newGauge(factory, metric_prefix, "barometer", "barometer", "name", "type"),
-		windDir:               newGauge(factory, metric_prefix, "wind_dir", "barometer", "name", "period"),
-		windSpeedMph:          newGauge(factory, metric_prefix, "wind_speed_mph", "wind_speed_mph", "name", "type"),
-		solarRadiation:        newGauge(factory, metric_prefix, "solar_radiation", "Solar radiation in W/m2", "name"),
-		rainIn:                newGauge(factory, metric_prefix, "rain_in", "Rain in inches", "name", "period"),
-		ultraviolet:           newGauge(factory, metric_prefix, "ultraviolet", "index 1-10", "name"),
-		lightning_strikes:     newGauge(factory, metric_prefix, "lightning_strikes", "lightning_strikes", "name", "period"),
-		lightning_last_strike: newGauge(factory, metric_prefix, "lightning_last_strike", "in seconds since Epoch", "name"),
-		lightning_distance:    newGauge(factory, metric_prefix, "lightning_distance", "last lightning strike distance in km", "name"),
-		stationtype:           newGauge(factory, metric_prefix, "stationtype_info", "stationtype_info", "name", "type"),
+		temperature:           newGauge(factory, metric_prefix, "temperature", "temperature Temperature in fahrenheit", "remote_adress", "name", "sensor"),
+		battery:               newGauge(factory, metric_prefix, "battery", "battery", "remote_adress", "name", "sensor"),
+		humidity:              newGauge(factory, metric_prefix, "humidity", "humidity", "remote_adress", "name", "sensor"),
+		barometer:             newGauge(factory, metric_prefix, "barometer", "barometer", "remote_adress", "name", "type"),
+		windDir:               newGauge(factory, metric_prefix, "wind_dir", "wind_dir", "remote_adress", "name", "period"),
+		windSpeedMph:          newGauge(factory, metric_prefix, "wind_speed_mph", "wind_speed_mph", "remote_adress", "name", "type"),
+		solarRadiation:        newGauge(factory, metric_prefix, "solar_radiation", "Solar radiation in W/m2", "remote_adress", "name"),
+		rainIn:                newGauge(factory, metric_prefix, "rain_in", "Rain in inches", "remote_adress", "name", "period"),
+		ultraviolet:           newGauge(factory, metric_prefix, "ultraviolet", "Ultra Violet index 1-10", "remote_adress", "name"),
+		lightning_strikes:     newGauge(factory, metric_prefix, "lightning_strikes", "lightning_strikes", "remote_adress", "name", "period"),
+		lightning_last_strike: newGauge(factory, metric_prefix, "lightning_last_strike", "in seconds since Epoch", "remote_adress", "name"),
+		lightning_distance:    newGauge(factory, metric_prefix, "lightning_distance", "last lightning strike distance in km", "remote_adress", "name"),
+		stationtype:           newGauge(factory, metric_prefix, "stationtype_info", "stationtype_info", "remote_adress", "name", "type"),
 	}
 }
 
@@ -69,11 +68,12 @@ func (p *Parser) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	var re = regexp.MustCompile(`^(.*):\d+$`)
 	remote_adress := re.ReplaceAllString(req.RemoteAddr, "$1")
 
-	if p.be_verbose {
-		var re = regexp.MustCompile(`&PASSKEY=[^&]*`)
-		s := re.ReplaceAllString(req.URL.EscapedPath(), "&PASSKEY=******")
-		slog.Info("sample submitted", "remote_adress" , remote_adress, "url", s)
-	}
+	// remove PASSKEY value from url
+	re = regexp.MustCompile(`&PASSKEY=[^&]*`)
+	req.URL.Path = re.ReplaceAllString(req.URL.Path, "&PASSKEY=******")
+
+	p.Log("sample submitted by remote_adress %s: %s", remote_adress, req.URL.Path)
+
 	// make url more easilily parseable
 	queryStr := strings.Replace(req.URL.Path, "/data/report/", "", 1)
 	// respond immediately
@@ -82,10 +82,16 @@ func (p *Parser) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		log.Printf("Failed to parse weather observation from request url: %+v", err)
 	}
-	p.Parse(values)
+	p.Parse(remote_adress, values)
 }
 
-func (p *Parser) Parse(values url.Values) {
+func (p *Parser) Log(format string, a ...any) {
+	if p.be_verbose {
+		log.Printf(format, a...)
+	}
+}
+
+func (p *Parser) Parse(remote_adress string, values url.Values) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("Failed to parse incoming request: %+v", r)
@@ -122,74 +128,74 @@ func (p *Parser) Parse(values url.Values) {
 	for i := 1; i <= 10; i++ {
 		iStr := strconv.Itoa(i)
 		if values.Has(fmt.Sprintf("temp%df", i)) {
-			updateGauge(p.temperature.WithLabelValues(p.name, iStr))(parseValue(fmt.Sprintf("temp%df", i)))
-			updateGauge(p.battery.WithLabelValues(p.name, iStr))(parseValue("batt" + iStr))
+			updateGauge(p.temperature.WithLabelValues(remote_adress,p.name, iStr))(parseValue(fmt.Sprintf("temp%df", i)))
+			updateGauge(p.battery.WithLabelValues(remote_adress,p.name, iStr))(parseValue("batt" + iStr))
 		} else {
 			p.battery.DeleteLabelValues(p.name, iStr)
 			p.temperature.DeleteLabelValues(p.name, iStr)
 		}
 		if values.Has("soilhum" + iStr) {
-			updateGauge(p.humidity.WithLabelValues(p.name, "soil"+iStr))(parseValue("soilhum" + iStr))
-			updateGauge(p.battery.WithLabelValues(p.name, "soil"+iStr))(parseValue("battsm" + iStr))
+			updateGauge(p.humidity.WithLabelValues(remote_adress,p.name, "soil"+iStr))(parseValue("soilhum" + iStr))
+			updateGauge(p.battery.WithLabelValues(remote_adress,p.name, "soil"+iStr))(parseValue("battsm" + iStr))
 		} else {
 			p.humidity.DeleteLabelValues(p.name, "soil"+iStr)
 			p.battery.DeleteLabelValues(p.name, "soil"+iStr)
 		}
 		if values.Has("humidity" + iStr) {
-			updateGauge(p.humidity.WithLabelValues(p.name, iStr))(parseValue("humidity" + iStr))
+			updateGauge(p.humidity.WithLabelValues(remote_adress,p.name, iStr))(parseValue("humidity" + iStr))
 		} else {
 			p.humidity.DeleteLabelValues(p.name, iStr)
 		}
 	}
 
-	updateGauge(p.temperature.WithLabelValues(p.name, "indoor"))(parseValue("tempinf"))
+	updateGauge(p.temperature.WithLabelValues(remote_adress,p.name, "indoor"))(parseValue("tempinf"))
 	tempF, err := parseValue("tempf")
 	if err == nil {
-		p.temperature.WithLabelValues(p.name, "outdoor").Set(tempF)
+		p.temperature.WithLabelValues(remote_adress,p.name, "outdoor").Set(tempF)
 		feelsLike := tempF
 		windSpeedMph, err := parseValue("windspeedmph")
 		if err == nil {
-			p.windSpeedMph.WithLabelValues(p.name, "sustained").Set(windSpeedMph)
+			p.windSpeedMph.WithLabelValues(remote_adress,p.name, "sustained").Set(windSpeedMph)
 			if tempF <= 40 {
 				feelsLike = calculateWindChill(tempF, windSpeedMph)
 			}
 		}
 		humidity, err := parseValue("humidity")
 		if err == nil {
-			p.humidity.WithLabelValues(p.name, "outdoor").Set(humidity)
-			p.temperature.WithLabelValues(p.name, "dewpoint").Set(calculateDewPoint(tempF, humidity))
+			p.humidity.WithLabelValues(remote_adress,p.name, "outdoor").Set(humidity)
+			p.temperature.WithLabelValues(remote_adress,p.name, "dewpoint").Set(calculateDewPoint(tempF, humidity))
 			if tempF >= 80 {
 				feelsLike = calculateHeatIndex(tempF, humidity)
 			}
 		}
-		p.temperature.WithLabelValues(p.name, "feelsLike").Set(feelsLike)
+		p.temperature.WithLabelValues(remote_adress,p.name, "feelsLike").Set(feelsLike)
 	}
 
-	updateGauge(p.battery.WithLabelValues(p.name, "outdoor"))(parseValue("battout"))
-	updateGauge(p.battery.WithLabelValues(p.name, "indoor"))(parseValue("battin"))
-	updateGauge(p.battery.WithLabelValues(p.name, "lightning"))(parseValue("batt_lightning"))
-	updateGauge(p.humidity.WithLabelValues(p.name, "indoor"))(parseValue("humidityin"))
-	updateGauge(p.barometer.WithLabelValues(p.name, "relative"))(parseValue("baromrelin"))
-	updateGauge(p.barometer.WithLabelValues(p.name, "absolute"))(parseValue("baromabsin"))
-	updateGauge(p.windDir.WithLabelValues(p.name, "current"))(parseValue("winddir"))
-	updateGauge(p.windDir.WithLabelValues(p.name, "avg10m"))(parseValue("winddir_avg10m"))
-	updateGauge(p.windSpeedMph.WithLabelValues(p.name, "gusts"))(parseValue("windgustmph"))
-	updateGauge(p.solarRadiation.WithLabelValues(p.name))(parseValue("solarradiation"))
-	updateGauge(p.rainIn.WithLabelValues(p.name, "hourly"))(parseValue("hourlyrainin"))
-	updateGauge(p.rainIn.WithLabelValues(p.name, "daily"))(parseValue("dailyrainin"))
-	updateGauge(p.rainIn.WithLabelValues(p.name, "weekly"))(parseValue("weeklyrainin"))
-	updateGauge(p.rainIn.WithLabelValues(p.name, "monthly"))(parseValue("monthlyrainin"))
-	updateGauge(p.rainIn.WithLabelValues(p.name, "yearly"))(parseValue("yearlyrainin"))
-	updateGauge(p.rainIn.WithLabelValues(p.name, "total"))(parseValue("totalrainin"))
-	updateGauge(p.rainIn.WithLabelValues(p.name, "event"))(parseValue("eventrainin"))
-	updateGauge(p.ultraviolet.WithLabelValues(p.name))(parseValue("uv"))
-	updateGauge(p.lightning_strikes.WithLabelValues(p.name, "day"))(parseValue("lightning_day"))
-	updateGauge(p.lightning_distance.WithLabelValues(p.name))(parseValue("lightning_distance"))
-	updateGauge(p.lightning_last_strike.WithLabelValues(p.name))(parseValue("lightning_time"))
+	updateGauge(p.battery.WithLabelValues(remote_adress,p.name, "outdoor"))(parseValue("battout"))
+	updateGauge(p.battery.WithLabelValues(remote_adress,p.name, "indoor"))(parseValue("battin"))
+	updateGauge(p.battery.WithLabelValues(remote_adress,p.name, "lightning"))(parseValue("batt_lightning"))
+	updateGauge(p.humidity.WithLabelValues(remote_adress,p.name, "indoor"))(parseValue("humidityin"))
+	updateGauge(p.barometer.WithLabelValues(remote_adress,p.name, "relative"))(parseValue("baromrelin"))
+	updateGauge(p.barometer.WithLabelValues(remote_adress,p.name, "absolute"))(parseValue("baromabsin"))
+	updateGauge(p.windDir.WithLabelValues(remote_adress,p.name, "current"))(parseValue("winddir"))
+	updateGauge(p.windDir.WithLabelValues(remote_adress,p.name, "avg10m"))(parseValue("winddir_avg10m"))
+	updateGauge(p.windSpeedMph.WithLabelValues(remote_adress,p.name, "gusts"))(parseValue("windgustmph"))
+	updateGauge(p.solarRadiation.WithLabelValues(remote_adress,p.name))(parseValue("solarradiation"))
+	updateGauge(p.rainIn.WithLabelValues(remote_adress,p.name, "hourly"))(parseValue("hourlyrainin"))
+	updateGauge(p.rainIn.WithLabelValues(remote_adress,p.name, "daily"))(parseValue("dailyrainin"))
+	updateGauge(p.rainIn.WithLabelValues(remote_adress,p.name, "weekly"))(parseValue("weeklyrainin"))
+	updateGauge(p.rainIn.WithLabelValues(remote_adress,p.name, "monthly"))(parseValue("monthlyrainin"))
+	updateGauge(p.rainIn.WithLabelValues(remote_adress,p.name, "yearly"))(parseValue("yearlyrainin"))
+	updateGauge(p.rainIn.WithLabelValues(remote_adress,p.name, "total"))(parseValue("totalrainin"))
+	updateGauge(p.rainIn.WithLabelValues(remote_adress,p.name, "event"))(parseValue("eventrainin"))
+	updateGauge(p.ultraviolet.WithLabelValues(remote_adress,p.name))(parseValue("uv"))
+	updateGauge(p.lightning_strikes.WithLabelValues(remote_adress,p.name, "day"))(parseValue("lightning_day"))
+	updateGauge(p.lightning_distance.WithLabelValues(remote_adress,p.name))(parseValue("lightning_distance"))
+	updateGauge(p.lightning_last_strike.WithLabelValues(remote_adress,p.name))(parseValue("lightning_time"))
 
 	stationType, station_err := parseString("stationtype")
 	if err == station_err {
-		updateGauge(p.stationtype.WithLabelValues(p.name, stationType))(float64(1), nil)
+		updateGauge(p.stationtype.WithLabelValues(remote_adress,p.name, stationType))(float64(1), nil)
 	}
 }
 
