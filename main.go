@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"log"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -25,11 +26,17 @@ func main() {
 		"add metrics prefix %s_(metric_name)")
 	be_verbose := flag.Bool("verbose", false,
 		"More verbose logging.")
-	name := flag.String("station-name", "Unknown",
-		"Weather station name for the 'name' label on the metrics")
+	name := flag.String("station-name", "",
+		"Weather station name for the 'name' label on the metrics. If not specified the IP adress is used.")
 	versionFlag := flag.Bool("v", false, "Show version and exit")
 	flag.Parse()
-	fmt.Printf("ambientweatherexporter version %s built on %s with %s\n", version, buildDate, goVersion)
+
+	if *be_verbose {
+		log.SetLogLoggerLevel(slog.LevelInfo)
+
+	}
+	log.SetFlags(log.Flags() &^ (log.Ldate | log.Ltime))
+	log.Println(fmt.Sprintf("ambientweatherexporter version %s built on %s with %s", version, buildDate, goVersion))
 	if *versionFlag {
 		os.Exit(0)
 	}

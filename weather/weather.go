@@ -3,6 +3,7 @@ package weather
 import (
 	"fmt"
 	"log"
+	"log/slog"
 	"math"
 	"net/http"
 	"net/url"
@@ -33,12 +34,7 @@ type Parser struct {
 	stationtype           *prometheus.GaugeVec
 }
 
-func NewParser(name string, prefix string, be_verbose bool, factory *promauto.Factory) *Parser {
-	metric_prefix := ""
-	if prefix != "" {
-		metric_prefix = prefix
-	}
-
+func NewParser(name string, metric_prefix string, be_verbose bool, factory *promauto.Factory) *Parser {
 	return &Parser{
 		name:                  name,
 		be_verbose:            be_verbose,
@@ -70,10 +66,13 @@ func newGauge(factory *promauto.Factory, metric_prefix string, name string, help
 
 func (p *Parser) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	// parse request url.
+	var re = regexp.MustCompile(`^(.*):\d+$`)
+	remote_adress := re.ReplaceAllString(req.RemoteAddr, "$1")
+
 	if p.be_verbose {
 		var re = regexp.MustCompile(`&PASSKEY=[^&]*`)
 		s := re.ReplaceAllString(req.URL.EscapedPath(), "&PASSKEY=******")
-		fmt.Printf("sample submitted from %s: %s\n", req.RemoteAddr, s)
+		slog.Info("sample submitted", "remote_adress" , remote_adress, "url", s)
 	}
 	// make url more easilily parseable
 	queryStr := strings.Replace(req.URL.Path, "/data/report/", "", 1)
