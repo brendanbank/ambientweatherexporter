@@ -15,22 +15,22 @@ import (
 )
 
 type Parser struct {
-	name           string
-	be_verbose     bool
-	metric_prefix  string
-	temperature    *prometheus.GaugeVec
-	battery        *prometheus.GaugeVec // 1 = ok; 0 = low
-	humidity       *prometheus.GaugeVec
-	barometer      *prometheus.GaugeVec
-	windDir        *prometheus.GaugeVec
-	windSpeedMph   *prometheus.GaugeVec
-	solarRadiation *prometheus.GaugeVec
-	rainIn         *prometheus.GaugeVec
-	ultraviolet    *prometheus.GaugeVec
-	lightning_strikes      *prometheus.GaugeVec
-	lightning_last_strike      *prometheus.GaugeVec
-	lightning_distance      *prometheus.GaugeVec
-	stationtype    *prometheus.GaugeVec
+	name                  string
+	be_verbose            bool
+	metric_prefix         string
+	temperature           *prometheus.GaugeVec
+	battery               *prometheus.GaugeVec // 1 = ok; 0 = low
+	humidity              *prometheus.GaugeVec
+	barometer             *prometheus.GaugeVec
+	windDir               *prometheus.GaugeVec
+	windSpeedMph          *prometheus.GaugeVec
+	solarRadiation        *prometheus.GaugeVec
+	rainIn                *prometheus.GaugeVec
+	ultraviolet           *prometheus.GaugeVec
+	lightning_strikes     *prometheus.GaugeVec
+	lightning_last_strike *prometheus.GaugeVec
+	lightning_distance    *prometheus.GaugeVec
+	stationtype           *prometheus.GaugeVec
 }
 
 func NewParser(name string, prefix string, be_verbose bool, factory *promauto.Factory) *Parser {
@@ -40,22 +40,22 @@ func NewParser(name string, prefix string, be_verbose bool, factory *promauto.Fa
 	}
 
 	return &Parser{
-		name:           name,
-		be_verbose:     be_verbose,
-		metric_prefix:  metric_prefix,
-		temperature:    newGauge(factory, metric_prefix, "temperature", "temperature Temperature in fahrenheit", "name", "sensor"),
-		battery:        newGauge(factory, metric_prefix, "battery", "battery", "name", "sensor"),
-		humidity:       newGauge(factory, metric_prefix, "humidity", "humidity", "name", "sensor"),
-		barometer:      newGauge(factory, metric_prefix, "barometer", "barometer", "name", "type"),
-		windDir:        newGauge(factory, metric_prefix, "wind_dir", "barometer", "name", "period"),
-		windSpeedMph:   newGauge(factory, metric_prefix, "wind_speed_mph", "wind_speed_mph", "name", "type"),
-		solarRadiation: newGauge(factory, metric_prefix, "solar_radiation", "Solar radiation in W/m2", "name"),
-		rainIn:         newGauge(factory, metric_prefix, "rain_in", "Rain in inches", "name", "period"),
-		ultraviolet:    newGauge(factory, metric_prefix, "ultraviolet", "index 1-10", "name"),
-		lightning_strikes:      newGauge(factory, metric_prefix, "lightning_strikes", "lightning_strikes", "name", "period"),
-		lightning_last_strike:      newGauge(factory, metric_prefix, "lightning_last_strike", "in seconds since Epoch", "name"),
-		lightning_distance:      newGauge(factory, metric_prefix, "lightning_distance", "last lightning strike distance in km", "name"),
-		stationtype:    newGauge(factory, metric_prefix, "stationtype_info", "stationtype_info", "name", "type"),
+		name:                  name,
+		be_verbose:            be_verbose,
+		metric_prefix:         metric_prefix,
+		temperature:           newGauge(factory, metric_prefix, "temperature", "temperature Temperature in fahrenheit", "name", "sensor"),
+		battery:               newGauge(factory, metric_prefix, "battery", "battery", "name", "sensor"),
+		humidity:              newGauge(factory, metric_prefix, "humidity", "humidity", "name", "sensor"),
+		barometer:             newGauge(factory, metric_prefix, "barometer", "barometer", "name", "type"),
+		windDir:               newGauge(factory, metric_prefix, "wind_dir", "barometer", "name", "period"),
+		windSpeedMph:          newGauge(factory, metric_prefix, "wind_speed_mph", "wind_speed_mph", "name", "type"),
+		solarRadiation:        newGauge(factory, metric_prefix, "solar_radiation", "Solar radiation in W/m2", "name"),
+		rainIn:                newGauge(factory, metric_prefix, "rain_in", "Rain in inches", "name", "period"),
+		ultraviolet:           newGauge(factory, metric_prefix, "ultraviolet", "index 1-10", "name"),
+		lightning_strikes:     newGauge(factory, metric_prefix, "lightning_strikes", "lightning_strikes", "name", "period"),
+		lightning_last_strike: newGauge(factory, metric_prefix, "lightning_last_strike", "in seconds since Epoch", "name"),
+		lightning_distance:    newGauge(factory, metric_prefix, "lightning_distance", "last lightning strike distance in km", "name"),
+		stationtype:           newGauge(factory, metric_prefix, "stationtype_info", "stationtype_info", "name", "type"),
 	}
 }
 
