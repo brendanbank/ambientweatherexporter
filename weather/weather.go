@@ -32,7 +32,7 @@ type Parser struct {
 func NewParser(name string, prefix string, factory *promauto.Factory) *Parser {
 	metric_prefix := ""
 	if prefix != "" {
-		metric_prefix = prefix + "_"
+		metric_prefix = prefix
 	}
 
 	return &Parser{
