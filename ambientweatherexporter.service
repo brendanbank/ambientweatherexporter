@@ -1,0 +1,14 @@
+[Unit]
+Description=Ambient Weather Prometheus Exporter
+After=network.target
+
+[Service]
+EnvironmentFile=/etc/default/ambientweatherexporter
+User=www-data
+Group=www-data
+Restart=always
+ExecStart=/usr/local/ambientweatherexporter/ambientweatherexporter $CUSTOM_ARGS -station-name '$STATIONNAME'
+
+[Install]
+WantedBy=multi-user.target
+
