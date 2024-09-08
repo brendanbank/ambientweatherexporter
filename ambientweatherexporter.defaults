@@ -1,0 +1,2 @@
+STATIONNAME="CasaDelLeone"
+CUSTOM_ARGS="-verbose -port 9123 -prefix ambient_weather"
